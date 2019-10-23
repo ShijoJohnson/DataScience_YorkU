@@ -1,0 +1,532 @@
+                                   Online New Popularity Data Science Project
+                                   
+                                   
+#**Abstract**  
+We are using Online New Popularity for our predictive analysis project. his dataset summarizes a heterogeneous set of features about articles published by Mashable in a period of two years. The goal is to predict the number of shares in social networks (popularity) for articles that are published by Mashable in a period of two years for certain companies specifically well known companies. 
+
+#**Introduction**
+Mashable is a digital media website that among other things publishes new articles. As news readership as shifted to online digital space, it is important for companies to understand the relationship if any exists between certain characteristics that are present in an article and the increase in its readership.
+
+#**Background**
+Our dataset has (insert) attributes and (insert) variables. It is mostly numerical and we will be changing some variables into catergorical. Our dataset can be found at [link](https://archive.ics.uci.edu/ml/datasets/online+news+popularity#)
+
+#**Objective**
+The objective of our data science excercise is to ().The target value is a numerical value and we are looking to predict the presence or absence of certain characteristics makes the article more shareable or less shareable and therefore we will be using logistic regression.
+
+#**Business Problem Statement**
+Which characteristics will make an article likely to be shared or not shared
+Shared = 1
+Not Shared = 0
+
+#**Data Understanding**
+Online News Popularity has 61 attribites and 39797 instances.   
+Input Variables
+
+```{r}
+setwd("C:/Users/shijo/Desktop/YorkUBigData/Course2-Intro_to_R/Lab2Assignment")
+news_popularity_df = read.csv("OnlineNewsPopularity.csv")
+View(news_popularity_df)
+```
+
+(Insert)
+
+OUtput Variables
+Number of Shares
+
+
+#**Data Preparation**
+We used the following R libraries to perform our data cleaning excercise. 
+dlypr
+ggplot2
+
+
+##**Reading the Online News Popularity Dataset**
+We loaded the dataset by saving a copy of the dataset from UCI and using read.csv function in R. 
+
+Preview of the data
+```{r}
+head(news_popularity_df)
+```
+
+Below is data attribute summary
+
+```{r}
+summary(news_popularity_df)
+```
+
+##**Preliminary Data Transformation**
+
+Extracting the name of the company from the url
+```{r}
+#Chunk not used
+news_popularity_df$url<-substr(news_popularity_df$url, 32,999)
+library(stringr)
+news_popularity_df$url<-str_extract(news_popularity_df$url, "[a-z]+-")
+news_popularity_df$url<-str_replace(news_popularity_df$url, "-","")
+
+```
+
+Merging day of the week columns
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+str(news_popularity_df)
+news_popularity_df$weekday_is_monday<-as.character(news_popularity_df$weekday_is_monday)
+news_popularity_df$weekday_is_monday<-str_replace(news_popularity_df$weekday_is_monday, "1","Monday")
+news_popularity_df$weekday_is_tuesday<-as.character(news_popularity_df$weekday_is_tuesday)
+news_popularity_df$weekday_is_tuesday<-str_replace(news_popularity_df$weekday_is_tuesday, "1","Tuesday")
+news_popularity_df$weekday_is_wednesday<-as.character(news_popularity_df$weekday_is_wednesday)
+news_popularity_df$weekday_is_wednesday<-str_replace(news_popularity_df$weekday_is_wednesday, "1","Wednesday")
+news_popularity_df$weekday_is_thursday<-as.character(news_popularity_df$weekday_is_thursday)
+news_popularity_df$weekday_is_thursday<-str_replace(news_popularity_df$weekday_is_thursday, "1","Thursday")
+news_popularity_df$weekday_is_friday<-as.character(news_popularity_df$weekday_is_friday)
+news_popularity_df$weekday_is_friday<-str_replace(news_popularity_df$weekday_is_friday, "1","Friday")
+news_popularity_df$weekday_is_saturday<-as.character(news_popularity_df$weekday_is_saturday)
+news_popularity_df$weekday_is_saturday<-str_replace(news_popularity_df$weekday_is_saturday, "1","Saturday")
+news_popularity_df$weekday_is_sunday<-as.character(news_popularity_df$weekday_is_sunday)
+news_popularity_df$weekday_is_sunday<-str_replace(news_popularity_df$weekday_is_sunday, "1","Sunday")
+
+news_popularity_df<-news_popularity_df %>%
+                    mutate(day_of_the_week= paste(weekday_is_monday,weekday_is_tuesday,weekday_is_wednesday,weekday_is_thursday,weekday_is_friday,weekday_is_saturday,weekday_is_sunday))
+                    
+news_popularity_df$day_of_the_week<-str_extract(news_popularity_df$day_of_the_week, "[A-Z][a-z]+")
+View(news_popularity_df)
+```
+
+Merging the news channels
+
+```{r}
+#Chunk not used
+news_popularity_df$data_channel_is_lifestyle<-as.character(news_popularity_df$data_channel_is_lifestyle)
+news_popularity_df$data_channel_is_lifestyle<-str_replace(news_popularity_df$data_channel_is_lifestyle, "1","Lifestyle")
+news_popularity_df$data_channel_is_entertainment<-as.character(news_popularity_df$data_channel_is_entertainment)
+news_popularity_df$data_channel_is_entertainment<-str_replace(news_popularity_df$data_channel_is_entertainment, "1","Entertainment")
+news_popularity_df$data_channel_is_bus<-as.character(news_popularity_df$data_channel_is_bus)
+news_popularity_df$data_channel_is_bus<-str_replace(news_popularity_df$data_channel_is_bus, "1","Bus")
+news_popularity_df$data_channel_is_socmed<-as.character(news_popularity_df$data_channel_is_socmed)
+news_popularity_df$data_channel_is_socmed<-str_replace(news_popularity_df$data_channel_is_socmed, "1","Socmed")
+news_popularity_df$data_channel_is_tech<-as.character(news_popularity_df$data_channel_is_tech)
+news_popularity_df$data_channel_is_tech<-str_replace(news_popularity_df$data_channel_is_tech, "1","Tech")
+news_popularity_df$data_channel_is_world<-as.character(news_popularity_df$data_channel_is_world)
+news_popularity_df$data_channel_is_world<-str_replace(news_popularity_df$data_channel_is_world, "1","World")
+news_popularity_df<-news_popularity_df %>%
+                    mutate(new_data_channel= paste(data_channel_is_lifestyle,data_channel_is_entertainment,data_channel_is_bus,data_channel_is_socmed,data_channel_is_tech,data_channel_is_world))
+news_popularity_df$new_data_channel<-str_extract(news_popularity_df$new_data_channel, "[A-Z][a-z]+")
+summary(news_popularity_df)    
+```
+
+Looking for missing values
+---
+```{r}
+any(is.na(news_popularity_df))
+summary(news_popularity_df)
+any(is.na(news_popularity_df$url))
+```
+
+omitting the NA values from the url column
+
+```{r}
+#Chunk not used
+news_popularity_df<-news_popularity_df%>%
+filter(!is.na(news_popularity_df$url))
+any(is.na(news_popularity_df$url))
+any(is.na(news_popularity_df))
+```
+
+The missing values were only in the URL column and have been omitted
+
+
+```{r}
+#Chunk not used
+str(news_popularity_df)
+```
+
+Only extracting numerical values 
+
+```{r}
+news_popularity_df2 <- news_popularity_df[c(1:61)]
+head(news_popularity_df2)
+```
+
+
+```{r}
+library(reshape2)
+library(ggplot2)
+library(zoo)
+library(xts)
+library(Hmisc)
+library(corrplot)
+library(gsubfn)
+library(proto)
+library(RSQLite)
+library(mice)
+library(VIM)
+library(pROC)
+library(caret)
+library(sqldf)
+library(xts)
+```
+
+the case of "n_tokens_content=0" doesn't make sense.
+```{r}
+news_popularity_df2=news_popularity_df2[!news_popularity_df2$n_unique_tokens==0,]
+str(news_popularity_df2)
+summary(news_popularity_df2)
+```
+
+
+R Function for Outlier Treatment : Percentile Capping
+```{r}
+pcap <- function(x){
+  for (i in which(sapply(x, is.numeric))) {
+    quantiles <- quantile( x[,i], c(.05, .95 ), na.rm =TRUE)
+    x[,i] = ifelse(x[,i] < quantiles[1] , quantiles[1], x[,i])
+    x[,i] = ifelse(x[,i] > quantiles[2] , quantiles[2], x[,i])}
+  x}
+```
+
+ Replacing extreme values with percentiles
+```{r}
+news_popularity_df3 = pcap(news_popularity_df2)
+summary(news_popularity_df3$shares)
+```
+
+
+generate z-scores using the scale() function (this does not work)
+```{r}
+#Chunk not used
+for(i in ncol(news_popularity_df3)-1){ 
+  news_popularity_df3[,i]<-scale(news_popularity_df3[,i], center = TRUE, scale = TRUE)
+}
+```
+delete non-numeric variables that won't be used as independet variables: timedelta, url
+
+```{r}
+news_popularity_df4 <- subset( news_popularity_df3, select = -c(url, timedelta))
+str(news_popularity_df4)
+```
+
+
+turn numeric to factor: date variables, and data channel variables
+```{r}
+#Chunk not used
+news_popularity_df4$weekday_is_monday <- factor(news_popularity_df4$weekday_is_monday) 
+news_popularity_df4$weekday_is_tuesday <- factor(news_popularity_df4$weekday_is_tuesday) 
+news_popularity_df4$weekday_is_wednesday <- factor(news_popularity_df4$weekday_is_wednesday) 
+news_popularity_df4$weekday_is_thursday <- factor(news_popularity_df4$weekday_is_thursday) 
+news_popularity_df4$weekday_is_friday <- factor(news_popularity_df4$weekday_is_friday) 
+news_popularity_df4$weekday_is_saturday <- factor(news_popularity_df4$weekday_is_saturday) 
+news_popularity_df4$weekday_is_sunday <- factor(news_popularity_df4$weekday_is_sunday) 
+news_popularity_df4$data_channel_is_lifestyle <- factor(news_popularity_df4$data_channel_is_lifestyle) 
+news_popularity_df4$data_channel_is_entertainment <- factor(news_popularity_df4$data_channel_is_entertainment) 
+news_popularity_df4$data_channel_is_bus <- factor(news_popularity_df4$data_channel_is_bus) 
+news_popularity_df4$data_channel_is_socmed <- factor(news_popularity_df4$data_channel_is_socmed) 
+news_popularity_df4$data_channel_is_tech <- factor(news_popularity_df4$data_channel_is_tech) 
+news_popularity_df4$data_channel_is_world <- factor(news_popularity_df4$data_channel_is_world)
+```
+
+```{r}
+summary(news_popularity_df4)
+str(news_popularity_df3)
+```
+
+(Omar Part)
+
+# Remove Redundant Features
+```{r}
+library(mlbench)
+library(caret)
+```
+
+### filter numeric columns only
+```{r}
+news_popularity_df5 <- Filter(is.numeric, news_popularity_df3)
+str(news_popularity_df5)
+```
+
+### calculate correlation matrix
+```{r}
+correlationMatrix <- cor(news_popularity_df5)
+```
+### summarize the correlation matrix
+```{r}
+print(correlationMatrix)
+```
+
+### find attributes that are highly corrected
+```{r}
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.4)
+```
+
+### print indexes of highly correlated attributes
+```{r}
+print(highlyCorrelated)
+```
+
+### removes highly correlated features from dataframe
+```{r}
+news_popularity_df6 <- news_popularity_df5[,-c(highlyCorrelated)]
+str(news_popularity_df6)
+news_popularity_df6
+```
+
+# Rank Features By Importance
+The importance of features can be estimated from data by building a KNN model.The varImp is then used to estimate the variable importance, which is printed and plotted.It shows that XX are the top X most important attributes.
+
+### ensure results are repeatable
+```{r}
+set.seed(7)
+```
+### load the library
+```{r}
+#Chunk not used
+library(mlbench)
+```
+
+### prepare training scheme & track training progress
+```{r}
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+```
+# train the model
+```{r}
+model <- train(shares~., data=news_popularity_df6, method="knn", preProcess="scale", trControl=control)
+```
+# estimate variable importance
+```{r}
+importance <- varImp(model, scale=FALSE)
+```
+# summarize importance
+```{r}
+print(importance)
+```
+# plot importance
+```{r}
+plot(importance)
+```
+
+
+# Neha's Part
+Random Forest 
+```{r}
+#Chunk not used
+library(randomForest)
+value.rf <- randomForest(shares ~ ., data=news_popularity_df4,ntree=40, mtry=30, importance=TRUE)
+plot(value.rf)
+varImpPlot(value.rf)
+
+```
+
+```{r}
+importance(value.rf)
+```
+
+
+##**Fitting the model**
+
+Linear Regression Model:
+Below code calculates the default Ordinary Least Squares (OLS) model. Dividing the dataset into train and test sample. We have considered 60% as train sample and 30% as test sample.
+
+Sampling the dataset
+```{r}
+set.seed(12345)
+news_popularity_df_train <- sample(nrow(news_popularity_df6),as.integer(nrow(news_popularity_df6)*0.60))
+train_news = news_popularity_df6[news_popularity_df_train,]
+test_news = news_popularity_df6[-news_popularity_df_train,]
+model_news <- lm(train_news$shares~.,data=train_news)
+summary(model_news)
+
+pred_model= predict(model_news, test_news)
+sqrt(mean((test_news$shares - pred_model)^2))
+```
+
+Adjusting the Model
+```{r}
+news_popularity_df6$shares <- log(news_popularity_df6$shares)
+news_popularity_df_train <- sample(nrow(news_popularity_df6),as.integer(nrow(news_popularity_df6)*0.60))
+
+train_news = news_popularity_df6[news_popularity_df_train,]
+test_news = news_popularity_df6[-news_popularity_df_train,]
+model_news1 <- lm(train_news$shares~.,data=train_news)
+summary(model_news1)
+
+pred_model1= predict(model_news1, test_news)
+sqrt(mean((test_news$shares - pred_model1)^2))
+```
+
+Stepwise Regression
+```{r}
+#Chunk not used
+model_news2<-step(model_news1)
+summary(model_news2)
+
+pred_model2=predict(model_news2, test_news)
+sqrt(mean((test_news$shares - pred_model2)^2))
+```
+```{r}
+hist(residuals(model_news1), xlab = "", main = "")
+
+```
+
+More models - Shijo
+Poisson Model
+```{r}
+pos.model<-glm(train_news$shares~.,data=train_news, family=poisson)
+summary(pos.model)
+
+library(sandwich)
+cov.m1 <- vcovHC(pos.model, type="HC0")
+std.err <- sqrt(diag(cov.m1))
+
+#Calculate Mean Squared Error
+pos.model.test <- predict (pos.model, test_news)
+# test set is to be predicted, test_news$shares : the dependent variable of model
+MSE.lm.pos <- sum((pos.model.test - test_news$shares)^2)/nrow(test_news)
+print(MSE.lm.pos)
+```
+
+Gaussian Model
+```{r}
+glmModel_gauss <- glm(train_news$shares~.,data=train_news, family=gaussian())
+#look at model object
+glmModel_gauss
+summary(glmModel_gauss)
+
+glmModel_gauss.test <- predict (glmModel_gauss, test_news)
+# test set is to be predicted, test_news$shares : the dependent variable of model
+MSE.lm.gauss <- sum((glmModel_gauss.test - test_news$shares)^2)/nrow(test_news)
+print(MSE.lm.gauss)
+```
+
+Gamma Model
+```{r}
+glmModel_gamma = glm(train_news$shares~.,data=train_news, family=Gamma())
+#look at model object
+glmModel_gamma
+summary(glmModel_gamma)
+
+glmModel_gamma.test <- predict (glmModel_gamma, test_news)
+# test set is to be predicted, test_news$shares : the dependent variable of model
+MSE.lm.gamma <- sum((glmModel_gamma.test - test_news$shares)^2)/nrow(test_news)
+print(MSE.lm.gamma)
+```
+
+Recursive Partitioning Decision tree
+```{r}
+# load the package
+library(rpart)
+# fit model
+fit <- rpart(train_news$shares~., data=train_news, control=rpart.control(minsplit=5))
+# summarize the fit
+summary(fit)
+# make predictions
+predictions <- predict(fit, test_news)
+# summarize accuracy of prediction
+mse <- mean((test_news$shares - predictions)^2)
+print(mse)
+```
+
+
+Conditional Decision Trees
+```{r}
+# load the package
+library(party)
+# fit model
+fit <- ctree(train_news$shares~., data=train_news, controls=ctree_control(minsplit=2,minbucket=2,testtype="Univariate"))
+# summarize the fit
+summary(fit)
+# make predictions
+predictions <- predict(fit, test_news)
+# summarize accuracy
+mse <- mean((test_news$shares - predictions)^2)
+print(mse)
+```
+
+Bootstrapped Aggregation
+```{r}
+# load the package
+library(ipred)
+# fit model
+fit <- bagging(train_news$shares~., data=train_news, control=rpart.control(minsplit=5))
+# summarize the fit
+summary(fit)
+# make predictions
+predictions <- predict(fit, test_news)
+# summarize accuracy
+mse <- mean((test_news$shares - predictions)^2)
+print(mse)
+```
+
+
+Gradient Boosted Machine
+```{r}
+# load the package
+library(gbm)
+# fit model
+fit <- gbm(train_news$shares~., data=train_news, distribution="gaussian", n.trees = 50)
+# summarize the fit
+summary(fit)
+# make predictions
+predictions <- predict(fit, test_news, n.trees = 50)
+# summarize accuracy
+mse <- mean((test_news$shares - predictions)^2)
+print(mse)
+```
+
+Cubist
+```{r}
+# load the package
+library(Cubist)
+# fit model
+fit <- cubist(train_news, train_news$shares)
+# summarize the fit
+summary(fit)
+# make predictions
+predictions <- predict(fit, test_news)
+# summarize accuracy
+mse <- mean((test_news$shares - predictions)^2)
+print(mse)
+```
+
+
+Random Forest
+```{r}
+# load the package
+library(randomForest)
+# fit model
+fit <- randomForest(train_news$shares~., data=train_news, ntree=40, mtry=30, importance=FALSE)
+# summarize the fit
+summary(fit)
+# make predictions
+predictions <- predict(fit, test_news)
+# summarize accuracy
+mse <- mean((test_news$shares - predictions)^2)
+print(mse)
+```
+
+
+Linear Model
+```{r}
+fit <- lm(train_news$shares~., data=train_news)
+# summarize the fit
+summary(fit)
+# make predictions
+predictions <- predict(fit, test_news)
+# summarize accuracy
+mse <- mean((test_news$shares - predictions)^2)
+print(mse)
+print(sqrt(mse))
+```
+
+
+```{r}
+str(test_news)
+```
+
+
+
+
+
+
