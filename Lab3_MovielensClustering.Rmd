@@ -1,0 +1,347 @@
+---
+title: "Lab3"
+output: html_document
+---
+                               Movie Dataset Data Analytics Project
+                               
+##1. Abstract## - Need to modify this. We use a different dataset.
+We are using Movielens Dataset for our Clustering data analytics group project. This dataset (ml-20m) describes 5-star rating and free-text tagging activity from MovieLens](http://movielens.org), a movie recommendation service. It contains 20000263 ratings and 465564 tag applications across 27278 movies. The question we will be answering is that wherher the number of movies produced affected by user ratings from the previous years or the number of views from the viewers. 
+
+##2. Introduction##
+
+##3. Background##
+
+##4. objective## - I modified it.This part includes business problem statement as well.
+The objective of this article is to identify groups of similar movies listed in the Full MovieLens Dataset and explore the characteristics of movie clusters using data visualization (e.g. budget by clusters, revenue by clusters, runtime by clusters, genres by clusters, etc.).
+The task could be solved by K-means Clustering and Hierarchical Clustering. The target variables are numeric variables below for clustering analysis.
+.	Budget
+.	Popularity
+.	Revenue
+.	Runtime
+.	Vote_average
+.	Vote_count
+
+
+#5. Data Understanding## - I modified it because the movie_meta data.csv will be used.
+The movie dataset (https://www.kaggle.com/rounakbanik/the-movies-dataset) has 24 attributes and 45467 instances.
+# we need to add the following sub-parts.
+5-1 Reading dataset
+Neha Part
+
+
+```{r}
+movies_metadata <- read.csv("./movies_metadata.csv")
+credits<-read.csv("./credits.csv")
+ratings<-read.csv("./ratings.csv")
+```
+
+
+5-2 Preview of the data
+```{r}
+##View(movies_metadata)
+##View(credits)
+##View(ratings)
+```
+
+merging the movies_metadata & credits files by id column 
+```{r}
+library(dplyr)
+movies_credit<-merge(movies_metadata,credits, by="id")
+```
+
+aggregating ratings
+
+```{r}
+
+ratings1<-aggregate(ratings$rating, by=list(Category=ratings$movieId), FUN=mean)
+colnames(ratings1) <- c("movieId", "rating")
+##formating ratings to 2 decimal points
+is.num <- sapply(ratings1, is.numeric)
+ratings1[is.num] <- lapply(ratings1[is.num], round, 2)
+```
+
+merging movies_credit and ratings1 using id from x & movieId from y
+```{r}
+movies_credit_ratings<- merge(movies_credit, ratings1, by.x="id", by.y="movieId", all.x=TRUE)
+```
+
+
+5-3 Attributes summary
+```{r}
+summary(movies_credit_ratings)
+##str(movies_credit_ratings)
+```
+
+
+5-4 Data Transformation
+```{r}
+cols = c(3,6,11,24);   
+movies_credit_ratings[,cols] = apply(movies_credit_ratings[,cols], 2, function(x)as.numeric(as.character(x)))
+
+```
+
+
+Check for missing values
+.	Check if variables have null values
+
+```{r}
+library(mice)
+library(purrr)
+library(dplyr)
+library(stringr)
+library(data.table)
+library(ggplot2)
+library(tidyr)
+library(factoextra)
+library(cluster)
+any(is.na(movies_credit_ratings))
+any(is.na(movies_credit_ratings$id))
+colnames(movies_credit_ratings)[colSums(is.na(movies_credit_ratings)) > 0]
+map_df(movies_credit_ratings, function(x) sum(is.na(x)))
+pMiss <- function(x){sum(is.na(x))/length(x)*100}
+apply(movies_credit_ratings,2,pMiss)
+```
+
+
+```{r}
+movies_metadata_df <-movies_credit_ratings
+
+```
+
+Neha part finish
+
+```{r}
+#Shijo Part- Converting Categorical into Numerical: Column Genre
+#Cleanse the column
+movies_metadata_df$genres <- as.character(movies_metadata_df$genres)
+movies_metadata_df$genres <- gsub("\\[|\\]|\\{|\\}|\\:|[0-9]|name|id", "", movies_metadata_df$genres)
+movies_metadata_df$genres <- gsub("\\.","",gsub("\\,|\"|\'", ".", movies_metadata_df$genres))
+movies_metadata_df$genres <- gsub("\\s+", " ", str_trim(movies_metadata_df$genres))
+movies_metadata_df$genres <- gsub("Science Fiction", "Sci-Fi", str_trim(movies_metadata_df$genres))
+
+```
+
+
+```{r}
+
+#Split genres and genres into individual columns
+genres <- select(movies_metadata_df, genres, id)
+genres2 <- as.data.frame(tstrsplit(genres[,1], '[ ]', type.convert=TRUE), stringsAsFactors=FALSE)
+View(genres2)
+colnames(genres2) <- c(1:7)
+str(movies_metadata_df)
+View(genres2)
+genre_list <- c("Action", "Adventure", "Animation", "Children", "Comedy", "Crime","Documentary", "Drama", "Family", "Fantasy","Film-Noir", "Horror", "Musical", "Mystery","Romance","Sci-Fi", "Thriller", "War", "Western")
+ 
+genre_matrix <- matrix(0,45539,19) #empty matrix
+genre_matrix[1,] <- genre_list #set first row to genre list
+colnames(genre_matrix) <- genre_list #set column names to genre list
+ 
+#iterate through matrix
+for (i in 1:nrow(genres2)) {
+ for (c in 1:ncol(genres2)) {
+ genmat_col = which(genre_matrix[1,] == genres2[i,c])
+ genre_matrix[i+1,genmat_col] <- 1
+ }
+}
+ 
+#convert into dataframe
+genre_matrix2 <- as.data.frame(genre_matrix[-1,], stringsAsFactors=FALSE) #remove first row, which was the genre list
+for (c in 1:ncol(genre_matrix2)) {
+  genre_matrix2[,c] <- as.integer(genre_matrix2[,c])
+} #convert from characters to integers
+View(genre_matrix2)
+
+#Merge the 2 dataframes
+movies_metadata_df_merged<-cbind(movies_metadata_df, genre_matrix2)
+View(movies_metadata_df_merged)
+```
+
+```{r}
+#Converting Categorical into Numerical: Column Production Countries
+#Cleanse the column
+movies_metadata_df$production_countries <- as.character(movies_metadata_df$production_countries)
+movies_metadata_df$production_countries <- gsub("\\[|\\]|\\{|\\}|\\:|[0-9]|name|id", "", movies_metadata_df$production_countries)
+movies_metadata_df$production_countries <- gsub("\\.","",gsub("\\,|\"|\'|iso_|\\_", ".", movies_metadata_df$production_countries))
+movies_metadata_df$production_countries <- gsub("\\s+", " ", str_trim(movies_metadata_df$production_countries))
+movies_metadata_df$production_countries <- gsub("Science Fiction", "Sci-Fi", str_trim(movies_metadata_df$production_countries))
+```
+
+
+```{r}
+#Split genres and genres into individual columns
+
+#Find most common Countries
+mt_mean <- movies_metadata_df %>% 
+  group_by(as.character(strsplit(movies_metadata_df$production_countries, " "))) %>% 
+  summarise(avg_count = n())
+View(mt_mean)
+
+countries_df <- select(movies_metadata_df, production_countries, id)
+countries_df2 <- as.data.frame(tstrsplit(countries_df[,1], '[ ]', type.convert=TRUE), stringsAsFactors=FALSE)
+View(countries_df2)
+colnames(countries_df2) <- c(1:7)
+str(movies_metadata_df)
+View(countries_df2)
+countries_list <- c("US", "GB", "Japan", "Italy", "Canada", "India", "Russia", "Germany", "Korea","Spain")
+ 
+countries_matrix <- matrix(0,45539,10) #empty matrix
+countries_matrix[1,] <- countries_list #set first row to genre list
+colnames(countries_matrix) <- countries_list #set column names to genre list
+ 
+#iterate through matrix
+for (i in 1:nrow(countries_df2)) {
+ for (c in 1:ncol(countries_df2)) {
+ countries_col = which(countries_matrix[1,] == countries_df2[i,c])
+ countries_matrix[i+1,countries_col] <- 1
+ }
+}
+ 
+#convert into dataframe
+countries_matrix2 <- as.data.frame(countries_matrix[-1,], stringsAsFactors=FALSE) #remove first row, which was the genre list
+for (c in 1:ncol(countries_matrix2)) {
+  countries_matrix2[,c] <- as.integer(countries_matrix2[,c])
+} #convert from characters to integers
+View(countries_matrix2)
+
+#Merge the 2 dataframes
+movies_metadata_df_merged<-cbind(movies_metadata_df_merged, countries_matrix2)
+View(movies_metadata_df_merged)
+```
+
+
+```{r}
+library(jsonlite)
+
+View(movies_metadata_df_merged$crew)
+any(is.na(movies_metadata_df_merged$crew))
+
+movies_metadata_df_merged$crew <- as.character(movies_metadata_df_merged$crew)
+movies_metadata_df_merged$cast <- as.character(movies_metadata_df_merged$cast)
+movies_metadata_df_merged$crew <- gsub("'", "\"", movies_metadata_df_merged$crew)
+movies_metadata_df_merged$crew <- gsub("None", "\\\"None\\\"", movies_metadata_df_merged$crew)
+movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("CachaÃ", movies_metadata_df_merged$crew),]
+movies_metadata_df_merged$crew <- gsub("\\t\", \"prof", "t\", \"prof", movies_metadata_df_merged$crew)
+movies_metadata_df_merged$crew <- gsub("\\\\t", "t", movies_metadata_df_merged$crew)
+movies_metadata_df_merged$crew <- gsub("Actor\"s", "Actor", movies_metadata_df_merged$crew)
+
+#movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("Richard W. Munch", movies_metadata_df_merged$crew),]
+#movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("Holly Goldberg", movies_metadata_df_merged$crew),]
+#movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("Henry Jaglom", movies_metadata_df_merged$crew),]
+#movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("credit_id: ", movies_metadata_df_merged$crew),] 
+#movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("'credit_id': ", movies_metadata_df_merged$crew),] 
+movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("Bernard Wolf", movies_metadata_df_merged$crew),]
+movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("Tony Hendra", movies_metadata_df_merged$crew),]
+movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("Robert M.", movies_metadata_df_merged$crew),]
+movies_metadata_df_merged$crew <- gsub("[()]", "", movies_metadata_df_merged$crew)
+
+#View(movies_metadata_df_merged[grepl("Robert Lepage", movies_metadata_df_merged$crew),])
+#View(movies_metadata_df_merged[grepl("'credit_id': ", movies_metadata_df_merged$crew),] )
+#Latest
+#str_count(movies_metadata_df_merged$crew[1], "name") 
+#View(movies_metadata_df_merged[grepl("Bernard Wolf", movies_metadata_df_merged$crew),])
+#View(movies_metadata_df_merged[grepl("\\\\t", movies_metadata_df_merged$crew),] )
+str(movies_metadata_df_merged)
+
+for (i in 1:45092){
+  jmax <- str_count(movies_metadata_df_merged$crew[i], "profile_path") 
+  jmax <- as.numeric(jmax)
+  #print(jmax)
+  for (j in 1:jmax){
+  movies_metadata_df_merged$crew[i] <- gsub(substr(movies_metadata_df_merged$crew[i], regexpr('name',movies_metadata_df_merged$crew[i])+8,
+                                   regexpr('profile_path',movies_metadata_df_merged$crew[i])-6), gsub("\"","",substr(movies_metadata_df_merged$crew[i],
+                                                                                                          regexpr('name',movies_metadata_df_merged$crew[i])+8,regexpr('profile_path',movies_metadata_df_merged$crew[i])-6), fixed = FALSE), 
+             movies_metadata_df_merged$crew[i], fixed = FALSE);
+  movies_metadata_df_merged$crew[i] <- sub("name","NAME",movies_metadata_df_merged$crew[i]);
+  movies_metadata_df_merged$crew[i] <- sub("profile_path","PROFILEPATH",movies_metadata_df_merged$crew[i]);
+  }
+}
+
+movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("onio Rodr", movies_metadata_df_merged$crew),]
+movies_metadata_df_merged <- movies_metadata_df_merged[!grepl("Randy Fife", movies_metadata_df_merged$crew),]
+
+movies_metadata_df_merged_1 <- movies_metadata_df_merged %>%      # start with the raw tibble 
+  filter(nchar(crew) > 2) %>%        # filter out movies with empty crew  
+  mutate(                                 
+    js  =  lapply(crew, fromJSON)  # turn the JSON into a list
+  )  %>%                           #
+  unnest(js)
+View(movies_metadata_df_merged_1)
+```
+
+
+```{r}
+
+```
+
+
+
+Plotting to see Data exploration
+```{r}
+#rating of Users 
+attach(movies_metadata_df_merged_1)
+ratingPlot <- ggplot(movies_metadata_df_merged_1, aes(vote_average)) + geom_histogram(aes(y = ..density..), 
+    binwidth = 1, colour = "black", fill = "white")
+ratingPlot <- ratingPlot + geom_density(alpha = 0.2, fill = "#FF6666")
+print(ratingPlot)
+```
+
+
+keeping only numeric columns
+
+```{r}
+movies_metadata_df1<- select_if(movies_metadata_df_merged_1, is.numeric)
+str(movies_metadata_df1)
+```
+
+.	Check outliers - should we include 0 value in Budget and Revenue?
+not sure if we need to do that
+
+Scaling the data
+
+```{r}
+#movies_metadata_df2 <- as.data.frame( scale(movies_metadata_df1[1:6] ))
+movies_metadata_df2 <- as.data.frame(movies_metadata_df1)
+movies_metadata_df2[1:6] <- as.data.frame( scale(movies_metadata_df1[1:6] ))
+
+str(movies_metadata_df2)
+```
+ 
+ Distribution of numerical variables
+ Visualizing the data to see outlier treatment is required
+ 
+```{r}
+hist(movies_metadata_df2[,6], breaks = 20, col = rgb(0,0,1,0.5))
+qqnorm(movies_metadata_df2[,6], main = "Normal QQ Plot - movies_metadata_df2")
+```
+ 
+It appears that budget, revenue, popularity and runtime have some outliers
+
+Treatment of outliers
+```{r}
+pcap <- function(x){
+  for (i in which(sapply(x, is.numeric))) {
+    quantiles <- quantile( x[,i], c(.05, .95 ), na.rm =TRUE)
+    x[,i] = ifelse(x[,i] < quantiles[1] , quantiles[1], x[,i])
+    x[,i] = ifelse(x[,i] > quantiles[2] , quantiles[2], x[,i])}
+  x}
+
+
+```
+
+ Replacing extreme values with percentiles
+ 
+```{r}
+movies_metadata_df3 <- movies_metadata_df2
+movies_metadata_df3[1:6] = pcap(movies_metadata_df2[1:6])
+str(movies_metadata_df3)
+```
+
+ 
+5-5 Distribution of target variables
+
+
+```{r}
+View(movies_metadata_df3)
+str(movies_metadata_df3)
+```
